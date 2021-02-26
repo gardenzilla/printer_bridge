@@ -1,9 +1,10 @@
 extern crate base64;
 extern crate websocket;
 
-use std::io::prelude::*;
 use std::process::{Command, Stdio};
 use std::thread;
+use std::{fs::File, io::prelude::*};
+use uuid::Uuid;
 use websocket::sync::Server;
 use websocket::OwnedMessage;
 
@@ -43,12 +44,34 @@ fn main() {
                         let _str = _str.replace("\\n", "");
                         match base64::decode(&_str) {
                             Ok(bytes) => {
+                                let file_name = format!("{}.pdf", Uuid::new_v4().to_u128_le());
+
+                                // Create
+                                let mut file = File::create(&file_name)
+                                    .expect("Error while creating temp document file");
+
+                                // Write main latex content into file
+                                file.write_all(&bytes).expect("Error writing bytes to file");
+
+                                // Flush main file
+                                file.flush().expect("Error while flushing file");
+
                                 let mut process = Command::new("lp")
+                                    // .arg(&file_name)
+                                    .arg("receipt.pdf")
+                                    .arg("-d")
+                                    .arg("epson")
+                                    .arg("-o")
+                                    .arg("media=Custom.80x2000mm")
                                     .stdin(Stdio::piped())
                                     .stdout(Stdio::piped())
                                     .spawn()
                                     .unwrap();
-                                process.stdin.take().unwrap().write_all(&bytes).unwrap();
+
+                                process.wait().expect("Error waiting for child process");
+
+                                std::fs::remove_file(&file_name)
+                                    .expect("Error while removing temp doc file");
                             }
                             Err(err) => println!("Error! {}", err),
                         }
