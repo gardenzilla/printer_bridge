@@ -57,8 +57,7 @@ fn main() {
                                 file.flush().expect("Error while flushing file");
 
                                 let mut process = Command::new("lp")
-                                    // .arg(&file_name)
-                                    .arg("receipt.pdf")
+                                    .arg(&file_name)
                                     .arg("-d")
                                     .arg("epson")
                                     .arg("-o")
